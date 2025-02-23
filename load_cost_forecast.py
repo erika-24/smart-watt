@@ -1,37 +1,43 @@
 import pandas as pd
+import pulp as plp
 from typing import Optional, Dict
 
-def get_load_cost_forecast(
+def optimize_load_cost_forecast(
     df_final: pd.DataFrame,
-    method: Optional[str] = "hp_hc_periods",
-    csv_path: Optional[str] = "data_load_cost_forecast.csv",
     peak_hours: Optional[Dict[str, Dict[str, str]]] = None,
-    offpeak_cost: Optional[float] = None,
-    peak_cost: Optional[float] = None,
-    list_and_perfect: Optional[bool] = False
+    offpeak_cost: float = 0.1,
+    peak_cost: float = 0.2
 ) -> pd.DataFrame:
     """
-    Get the unit cost for load consumption based on multiple tariff periods.
+    Optimizes the unit cost for load consumption by scheduling loads to minimize total energy cost.
 
     :param df_final: DataFrame containing input data.
-    :param method: Method for load cost forecast ('hp_hc_periods' or 'csv'), defaults to 'hp_hc_periods'.
-    :param csv_path: Path to CSV file if using 'csv' method.
     :param peak_hours: Dictionary defining peak hour periods, e.g., {"morning": {"start": "07:00", "end": "10:00"}}.
     :param offpeak_cost: Cost for off-peak hours.
     :param peak_cost: Cost for peak hours.
-    :param list_and_perfect: Optional flag for additional processing, defaults to False.
-    :return: DataFrame with appended load cost column.
+    :return: DataFrame with an optimized load cost schedule.
     """
 
-    if method == "hp_hc_periods" and peak_hours and offpeak_cost is not None and peak_cost is not None:
-        df_final["load_cost"] = None  # Initialize without setting default cost
-        for _, period in peak_hours.items():
-            peak_indices = df_final.between_time(period["start"], period["end"]).index
-            df_final.loc[peak_indices, "load_cost"] = peak_cost
-        df_final["load_cost"].fillna(offpeak_cost, inplace=True)  # Only fill missing values if offpeak_cost is provided
+    # Initialize LP problem
+    prob = plp.LpProblem("Minimize_Energy_Cost", plp.LpMinimize)
 
-    elif method == "csv":
-        df_csv = pd.read_csv(csv_path, index_col=0, parse_dates=True)
-        df_final = df_final.merge(df_csv, left_index=True, right_index=True, how="left")
+    # Create decision variables for each time slot
+    df_final["load_var"] = [plp.LpVariable(f"load_{i}", lowBound=0) for i in df_final.index]
+
+    # Define cost function
+    cost_expr = []
+    for i, row in df_final.iterrows():
+        is_peak = any(row.between_time(period["start"], period["end"]).shape[0] > 0 for _, period in peak_hours.items())
+        unit_cost = peak_cost if is_peak else offpeak_cost
+        cost_expr.append(unit_cost * df_final.at[i, "load_var"])
+
+    # Objective: Minimize total energy cost
+    prob += plp.lpSum(cost_expr), "Total_Energy_Cost"
+
+    # Solve the LP problem
+    prob.solve(plp.PULP_CBC_CMD(msg=False))
+
+    # Assign optimized load cost values
+    df_final["optimized_load"] = [plp.value(var) for var in df_final["load_var"]]
 
     return df_final
