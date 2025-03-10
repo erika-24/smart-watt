@@ -1,0 +1,273 @@
+/* Main Layout */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.wrapper {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+#sidebar {
+  min-width: 250px;
+  max-width: 250px;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+#sidebar.collapsed {
+  margin-left: -250px;
+}
+
+#sidebar .sidebar-header {
+  padding: 20px;
+  background: #343a40;
+}
+
+#sidebar ul.components {
+  padding: 20px 0;
+  border-bottom: 1px solid #4b545c;
+  flex-grow: 1;
+}
+
+#sidebar ul p {
+  color: #fff;
+  padding: 10px;
+}
+
+#sidebar ul li a {
+  padding: 10px 20px;
+  font-size: 1.1em;
+  display: block;
+  color: #adb5bd;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+#sidebar ul li a:hover {
+  color: #fff;
+  background: #495057;
+}
+
+#sidebar ul li.active > a {
+  color: #fff;
+  background: #495057;
+  border-left: 4px solid #ffc107;
+}
+
+#sidebar .sidebar-footer {
+  padding: 15px;
+  background: #343a40;
+  border-top: 1px solid #4b545c;
+}
+
+/* Content */
+#content {
+  width: 100%;
+  min-height: 100vh;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+  padding: 15px 10px;
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Cards */
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+.card-header {
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 15px 20px;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 5px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #sidebar {
+    margin-left: -250px;
+  }
+  #sidebar.active {
+    margin-left: 0;
+  }
+  #sidebarCollapse span {
+    display: none;
+  }
+}
+
+/* Custom Styles */
+.bg-sidebar {
+  background-color: #343a40;
+}
+
+.text-sidebar {
+  color: #adb5bd;
+}
+
+/* Device Icons */
+.device-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.device-icon.lighting {
+  background-color: #ffeeba;
+  color: #d39e00;
+}
+
+.device-icon.appliance {
+  background-color: #c3e6cb;
+  color: #28a745;
+}
+
+.device-icon.charger {
+  background-color: #b8daff;
+  color: #007bff;
+}
+
+.device-icon.hvac {
+  background-color: #f5c6cb;
+  color: #dc3545;
+}
+
+/* Energy Flow Diagram */
+.energy-flow-container {
+  position: relative;
+  height: 400px;
+}
+
+.energy-node {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  color: white;
+  font-weight: bold;
+  text-align: center;
+}
+
+.energy-node.solar {
+  background-color: #ffd700;
+  top: 50px;
+  left: 50px;
+}
+
+.energy-node.battery {
+  background-color: #4caf50;
+  top: 200px;
+  left: 200px;
+}
+
+.energy-node.grid {
+  background-color: #9c27b0;
+  top: 50px;
+  right: 50px;
+}
+
+.energy-node.home {
+  background-color: #2196f3;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.energy-flow {
+  position: absolute;
+  height: 4px;
+  background-color: #ccc;
+  transform-origin: 0 0;
+}
+
+.energy-flow.active {
+  animation: flowPulse 2s infinite;
+}
+
+@keyframes flowPulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Optimization Results */
+.optimization-metric {
+  text-align: center;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.optimization-metric.cost {
+  background-color: #28a745;
+}
+
+.optimization-metric.self-consumption {
+  background-color: #17a2b8;
+}
+
+.optimization-metric.peak-power {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.optimization-metric.battery-cycles {
+  background-color: #6c757d;
+}
+

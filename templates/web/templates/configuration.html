@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Home Energy Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+            font-weight: bold;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--dark-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .config-form label {
+            font-weight: 500;
+        }
+        
+        .config-form .form-text {
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-lightning-charge-fill"></i> Energy Management System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/optimization">Optimization</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">Devices</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/configuration">Configuration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/history">History</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2>System Configuration</h2>
+                <p class="text-muted">Configure your home energy management system</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary" id="saveConfigBtn">
+                    <i class="bi bi-save"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="configTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">System</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="battery-tab" data-bs-toggle="tab" data-bs-target="#battery" type="button" role="tab">Battery</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pv-tab" data-bs-toggle="tab" data-bs-target="#pv" type="button" role="tab">PV System</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="grid-tab" data-bs-toggle="tab" data-bs-target="#grid" type="button" role="tab">Grid</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tariffs-tab" data-bs-toggle="tab" data-bs-target="#tariffs" type="button" role="tab">Tariffs</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="integrations-tab" data-bs-toggle="tab" data-bs-target="#integrations" type="button" role="tab">Integrations</button>
+                    </li>
+                </ul>
+                <div class="tab-content p-3" id="configTabsContent">
+                    <!-- System Configuration -->
+                    <div class="tab-pane fade show active" id="system" role="tabpanel" aria-labelledby="system-tab">
+                        <form class="config-form">
+                            <div class="mb-3">
+                                <label for="timeHorizon" class="form-label">Optimization Time Horizon (hours)</label>
+                                <input type="number" class="form-control" id="timeHorizon" value="24" min="1" max="72">
+                                <div class="form-text">How far into the future to optimize energy usage</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="timeStep" class="form-label">Time Step (minutes)</label>
+                                <select class="form-select" id="timeStep">
+                                    <option value="5">5 minutes</option>
+                                    <option value="15" selected>15 minutes</option>
+                                    <option value="30">30 minutes</option>
+                                    <option value="60">60 minutes</option>
+                                </select>
+                                <div class="form-text">Granularity of the optimization</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="optimizationObjective" class="form-label">Default Optimization Objective</label>
+                                <select class="form-select" id="optimizationObjective">
+                                    <option value="cost" selected>Cost Minimization</option>
+                                    <option value="self_consumption">Self-Consumption Maximization</option>
+                                    <option value="peak_shaving">Peak Shaving</option>
+                                    <option value="multi_objective">Multi-Objective</option>
+                                </select>
+                                <div class="form-text">Primary goal for the optimization algorithm</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="forecastMethod" class="form-label">Load Forecasting Method</label>
+                                <select class="form-select" id="forecastMethod">
+                                    <option value="adaptive" selected>Adaptive (Recommended)</option>
+                                    <option value="random_forest">Random Forest</option>
+                                    <option value="gradient_boosting">Gradient Boosting</option>
+                                    <option value="pattern">Pattern-Based</option>
+                                </select>
+                                <div class="form-text">Method used to forecast load demand</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useHistoricalLoad" checked>
+                                    <label class="form-check-label" for="useHistoricalLoad">Use historical data for load forecasting</label>
+                                </div>
+                                <div class="form-text">When enabled, the system will use historical data to improve load forecasts</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useForecastedPrices" checked>
+                                    <label class="form-check-label" for="useForecastedPrices">Use forecasted electricity prices</label>
+                                </div>
+                                <div class="form-text">When enabled, the system will forecast electricity prices based on historical patterns</div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Battery Configuration -->
+                    <div class="tab-pane fade" id="battery" role="tabpanel" aria-labelledby="battery-tab">
+                        <form class="config-form">
+                            <div class="mb-3">
+                                <label for="batteryCapacity" class="form-label">Battery Capacity (kWh)</label>
+                                <input type="number" class="form-control" id="batteryCapacity" value="10" min="0" step="0.1">
+                                <div class="form-text">Total usable capacity of your battery</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="batteryMaxPower" class="form-label">Maximum Power (kW)</label>
+                                <input type="number" class="form-control" id="batteryMaxPower" value="5" min="0" step="0.1">
+                                <div class="form-text">Maximum charge/discharge power</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="batteryEfficiencyCharge" class="form-label">Charging Efficiency (%)</label>
+                                <input type="number" class="form-control" id="batteryEfficiencyCharge" value="95" min="0" max="100" step="0.1">
+                                <div class="form-text">Efficiency of the battery when charging</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="batteryEfficiencyDischarge" class="form-label">Discharging Efficiency (%)</label>
+                                <input type="number" class="form-control" id="batteryEfficiencyDischarge" value="95" min="0" max="100" step="0.1">
+                                <div class="form-text">Efficiency of the battery when discharging</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="minSOC" class="form-label">Minimum State of Charge (%)</label>
+                                <input type="number" class="form-control" id="minSOC" value="20" min="0" max="100" step="1">
+                                <div class="form-text">Minimum allowed battery level</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="maxSOC" class="form-label">Maximum State of Charge (%)</label>
+                                <input type="number" class="form-control" id="maxSOC" value="95" min="0" max="100" step="1">
+                                <div class="form-text">Maximum allowed battery level</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="batteryDegradationCost" class="form-label">Degradation Cost ($/kWh)</label>
+                                <input type="number" class="form-control" id="batteryDegradationCost" value="0.05" min="0" step="0.01">
+                                <div class="form-text">Cost associated with battery cycling</div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- PV System Configuration -->
+                    <div class="tab-pane fade" id="pv" role="tabpanel" aria-labelledby="pv-tab">
+                        <form class="config-form">
+                            <div class="mb-3">
+                                <label for="pvCapacity" class="form-label">PV Capacity (kWp)</label>
+                                <input type="number" class="form-control" id="pvCapacity" value="5" min="0" step="0.1">
+                                <div class="form-text">Peak capacity of your solar panels</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="inverterCapacity" class="form-label">Inverter Capacity (kW)</label>
+                                <input type="number" class="form-control" id="inverterCapacity" value="5" min="0" step="0.1">
+                                <div class="form-text">Maximum power output of your inverter</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="inverterEfficiency" class="form-label">Inverter Efficiency (%)</label>
+                                <input type="number" class="form-control" id="inverterEfficiency" value="97" min="0" max="100" step="0.1">
+                                <div class="form-text">Efficiency of the inverter</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="orientation" class="form-label">Panel Orientation</label>
+                                <select class="form-select" id="orientation">
+                                    <option value="North">North</option>
+                                    <option value="Northeast">Northeast</option>
+                                    <option value="East">East</option>
+                                    <option value="Southeast">Southeast</option>
+                                    <option value="South" selected>South</option>
+                                    <option value="Southwest">Southwest</option>
+                                    <option value="West">West</option>
+                                    <option value="Northwest">Northwest</option>
+                                </select>
+                                <div class="form-text">Direction your panels are facing</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tilt" class="form-label">Panel Tilt (degrees)</label>
+                                <input type="number" class="form-control" id="tilt" value="30" min="0" max="90" step="1">
+                                <div class="form-text">Angle of your panels from horizontal</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useSolcast" checked>
+                                    <label class="form-check-label" for="useSolcast">Use Solcast for PV forecasting</label>
+                                </div>
+                                <div class="form-text">When enabled, the system will use Solcast API for accurate PV forecasts</div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Grid Configuration -->
+                    <div class="tab-pane fade" id="grid" role="tabpanel" aria-labelledby="grid-tab">
+                        <form class="config-form">
+                            <div class="mb-3">
+                                <label for="maxGridImport" class="form-label">Maximum Grid Import (kW)</label>
+                                <input type="number" class="form-control" id="maxGridImport" value="10" min="0" step="0.1">
+                                <div class="form-text">Maximum power that can be imported from the grid</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="maxGridExport" class="form-label">Maximum Grid Export (kW)</label>
+                                <input type="number" class="form-control" id="maxGridExport" value="5" min="0" step="0.1">
+                                <div class="form-text">Maximum power that can be exported to the grid</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="importTariffType" class="form-label">Import Tariff Type</label>
+                                <select class="form-select" id="importTariffType">
+                                    <option value="flat">Flat Rate</option>
+                                    <option value="tou" selected>Time-of-Use</option>
+                                    <option value="dynamic">Dynamic Pricing</option>
+                                </select>
+                                <div class="form-text">Type of tariff for importing electricity from the grid</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="exportTariffType" class="form-label">Export Tariff Type</label>
+                                <select class="form-select" id="exportTariffType">
+                                    <option value="flat" selected>Flat Rate</option>
+                                    <option value="tou">Time-of-Use</option>
+                                    <option value="dynamic">Dynamic Pricing</option>
+                                </select>
+                                <div class="form-text">Type of tariff for exporting electricity to the grid</div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Tariffs Configuration -->
+                    <div class="tab-pane fade" id="tariffs" role="tabpanel" aria-labelledby="tariffs-tab">
+                        <div class="mb-3">
+                            <h5>Import Tariffs (Weekdays)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="weekdayTariffsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Rate ($/kWh)</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Off-peak</td>
+                                            <td>00:00</td>
+                                            <td>07:00</td>
+                                            <td>0.08</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mid-peak</td>
+                                            <td>07:00</td>
+                                            <td>16:00</td>
+                                            <td>0.12</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>On-peak</td>
+                                            <td>16:00</td>
+                                            <td>21:00</td>
+                                            <td>0.24</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Off-peak</td>
+                                            <td>21:00</td>
+                                            <td>24:00</td>
+                                            <td>0.08</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary">Add Tariff Period</button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h5>Import Tariffs (Weekends)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="weekendTariffsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Rate ($/kWh)</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Off-peak</td>
+                                            <td>00:00</td>
+                                            <td>24:00</td>
+                                            <td>0.08</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary">Add Tariff Period</button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h5>Export Tariffs</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="exportTariffsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Rate ($/kWh)</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Export</td>
+                                            <td>00:00</td>
+                                            <td>24:00</td>
+                                            <td>0.05</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary">Add Tariff Period</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Integrations Configuration -->
+                    <div class="tab-pane fade" id="integrations" role="tabpanel" aria-labelledby="integrations-tab">
+                        <div class="mb-4">
+                            <h5>Home Assistant</h5>
+                            <form class="config-form">
+                                <div class="mb-3">
+                                    <label for="haUrl" class="form-label">Home Assistant URL</label>
+                                    <input type="url" class="form-control" id="haUrl" value="http://homeassistant.local:8123">
+                                    <div class="form-text">URL of your Home Assistant instance</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="haToken" class="form-label">Long-Lived Access Token</label>
+                                    <input type="password" class="form-control" id="haToken">
+                                    <div class="form-text">Long-lived access token from your Home Assistant profile</div>
+                                </div>
+                                <button type="button" class="btn btn-primary">Test Connection</button>
+                            </form>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>ESPHome</h5>
+                            <form class="config-form">
+                                <div class="mb-3">
+                                    <label for="esphomeUrl" class="form-label">ESPHome API URL</label>
+                                    <input type="url" class="form-control" id="esphomeUrl" value="http://esphome-device.local:6052">
+                                    <div class="form-text">URL of your ESPHome device</div>
+                                </div>
+                                <button type="button" class="btn btn-primary">Test Connection</button>
+                            </form>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>Solcast</h5>
+                            <form class="config-form">
+                                <div class="mb-3">
+                                    <label for="solcastApiKey" class="form-label">Solcast API Key</label>
+                                    <input type="password" class="form-control" id="solcastApiKey">
+                                    <div class="form-text">Your Solcast API key</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="solcastResourceId" class="form-label">Resource ID</label>
+                                    <input type="text" class="form-control" id="solcastResourceId">
+                                    <div class="form-text">Resource ID for your rooftop PV system</div>
+                                </div>
+                                <button type="button" class="btn btn-primary">Test Connection</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Save configuration button
+            document.getElementById('saveConfigBtn').addEventListener('click', function() {
+                // This would save the configuration to the API in a real implementation
+                alert('Configuration saved successfully!');
+            });
+            
+            // Tab change event
+            const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            tabEls.forEach(tabEl => {
+                tabEl.addEventListener('shown.bs.tab', function (event) {
+                    // This would load the configuration for the selected tab in a real implementation
+                    console.log('Tab changed to: ' + event.target.id);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

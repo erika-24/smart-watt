@@ -1,0 +1,715 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .card-metric {
+        transition: all 0.3s;
+    }
+    .card-metric:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .optimization-result {
+        display: none;
+    }
+    .optimization-result.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1 class="h3 mb-0">Energy Optimization</h1>
+        <p class="text-muted">Optimize your energy usage and reduce costs</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <button type="button" class="btn btn-primary" id="runOptimizationBtn">
+            <i class="fas fa-play me-1"></i>
+            Run Optimization
+        </button>
+    </div>
+</div>
+
+<!-- Optimization Parameters -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Optimization Parameters</h5>
+            </div>
+            <div class="card-body">
+                <form id="optimizationForm">
+                    <div class="mb-3">
+                        <label for="optimizationMode" class="form-label">Optimization Mode</label>
+                        <select class="form-select" id="optimizationMode" name="optimizationMode">
+                            <option value="cost" selected>Cost Minimization</option>
+                            <option value="self_consumption">Self-Consumption Maximization</option>
+                            <option value="grid_independence">Grid Independence</option>
+                            <option value="battery_life">Battery Life Preservation</option>
+                        </select>
+                        <div class="form-text">Select the primary goal of the optimization.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="timeHorizon" class="form-label">Time Horizon (hours)</label>
+                        <select class="form-select" id="timeHorizon" name="timeHorizon">
+                            <option value="12">12 hours</option>
+                            <option value="24" selected>24 hours</option>
+                            <option value="48">48 hours</option>
+                            <option value="72">72 hours</option>
+                        </select>
+                        <div class="form-text">How far ahead to optimize.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="algorithm" class="form-label">Optimization Algorithm</label>
+                        <select class="form-select" id="algorithm" name="algorithm">
+                            <option value="linear" selected>Linear Programming (CVXPY)</option>
+                            <option value="sgd">Stochastic Gradient Descent</option>
+                            <option value="lbfgs">L-BFGS-B</option>
+                            <option value="genetic">Genetic Algorithm</option>
+                        </select>
+                        <div class="form-text">Select the algorithm to use for optimization.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="batteryEnabled" checked>
+                            <label class="form-check-label" for="batteryEnabled">Battery Constraints</label>
+                        </div>
+                        <div id="batteryConstraints" class="mt-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="minSoc" class="form-label">Minimum SOC (%)</label>
+                                    <input type="range" class="form-range" id="minSoc" name="minSoc" min="10" max="50" value="20">
+                                    <div class="text-center" id="minSocValue">20%</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="maxCycles" class="form-label">Max Daily Cycles</label>
+                                    <input type="range" class="form-range" id="maxCycles" name="maxCycles" min="0.5" max="2" step="0.1" value="1">
+                                    <div class="text-center" id="maxCyclesValue">1.0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="gridEnabled" checked>
+                            <label class="form-check-label" for="gridEnabled">Grid Constraints</label>
+                        </div>
+                        <div id="gridConstraints" class="mt-2">
+                            <label for="maxPower" class="form-label">Maximum Grid Power (kW)</label>
+                            <input type="range" class="form-range" id="maxPower" name="maxPower" min="3" max="10" value="5">
+                            <div class="text-center" id="maxPowerValue">5 kW</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Controllable Devices</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Device</th>
+                                <th>Type</th>
+                                <th>Include</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devicesList">
+                            <tr>
+                                <td colspan="3" class="text-center">Loading devices...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optimization Results -->
+<div class="row mb-4 optimization-result" id="optimizationResults">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Optimization Results</h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="exportResultsBtn">
+                        <i class="fas fa-download me-1"></i>
+                        Export
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="applyScheduleBtn">
+                        <i class="fas fa-check me-1"></i>
+                        Apply Schedule
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card card-metric">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-subtitle text-muted">Cost Savings</h6>
+                                    <i class="fas fa-dollar-sign text-success"></i>
+                                </div>
+                                <h2 class="card-title mb-0" id="costSavings">$0.00</h2>
+                                <p class="card-text text-muted small" id="costSavingsPct">0% reduction</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card card-metric">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-subtitle text-muted">Self-Consumption</h6>
+                                    <i class="fas fa-recycle text-primary"></i>
+                                </div>
+                                <h2 class="card-title mb-0" id="selfConsumption">0%</h2>
+                                <p class="card-text text-muted small" id="selfConsumptionChange">+0% improvement</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card card-metric">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-subtitle text-muted">Peak Grid Power</h6>
+                                    <i class="fas fa-bolt text-warning"></i>
+                                </div>
+                                <h2 class="card-title mb-0" id="peakPower">0.0 kW</h2>
+                                <p class="card-text text-muted small" id="peakPowerChange">-0% reduction</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card card-metric">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-subtitle text-muted">Battery Cycles</h6>
+                                    <i class="fas fa-battery-half text-info"></i>
+                                </div>
+                                <h2 class="card-title mb-0" id="batteryCycles">0.0</h2>
+                                <p class="card-text text-muted small" id="batteryCyclesChange">0 cycles per day</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="optimizationChart" style="height: 400px;"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Device Schedules</h5>
+                        <div id="deviceSchedules" class="mt-3">
+                            <div class="alert alert-info">No device schedules available</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Indicator -->
+<div class="row mb-4 optimization-result" id="optimizationLoading">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Running Optimization...</h5>
+                <p class="text-muted" id="optimizationProgress">This may take a few moments</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Message -->
+<div class="row mb-4 optimization-result" id="optimizationError">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="text-danger mb-3">
+                    <i class="fas fa-exclamation-circle fa-3x"></i>
+                </div>
+                <h5>Optimization Failed</h5>
+                <p class="text-muted" id="errorMessage">An error occurred during optimization</p>
+                <button type="button" class="btn btn-outline-secondary" id="retryBtn">
+                    <i class="fas fa-redo me-1"></i>
+                    Retry
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let currentOptimizationId = null;
+    let devices = [];
+    
+    // Initialize page
+    $(document).ready(function() {
+        // Initialize range sliders
+        $('#minSoc').on('input', function() {
+            $('#minSocValue').text($(this).val() + '%');
+        });
+        
+        $('#maxCycles').on('input', function() {
+            $('#maxCyclesValue').text($(this).val());
+        });
+        
+        $('#maxPower').on('input', function() {
+            $('#maxPowerValue').text($(this).val() + ' kW');
+        });
+        
+        // Toggle constraints
+        $('#batteryEnabled').change(function() {
+            $('#batteryConstraints').toggle($(this).is(':checked'));
+        });
+        
+        $('#gridEnabled').change(function() {
+            $('#gridConstraints').toggle($(this).is(':checked'));
+        });
+        
+        // Load devices
+        loadDevices();
+        
+        // Run optimization button
+        $('#runOptimizationBtn').click(function() {
+            runOptimization();
+        });
+        
+        // Apply schedule button
+        $('#applyScheduleBtn').click(function() {
+            applySchedule();
+        });
+        
+        // Export results button
+        $('#exportResultsBtn').click(function() {
+            exportResults();
+        });
+        
+        // Retry button
+        $('#retryBtn').click(function() {
+            runOptimization();
+        });
+    });
+    
+    // Load devices
+    function loadDevices() {
+        $.ajax({
+            url: '/api/devices',
+            method: 'GET',
+            success: function(data) {
+                devices = data;
+                renderDevices();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading devices:', error);
+                $('#devicesList').html('<tr><td colspan="3" class="text-center text-danger">Error loading devices</td></tr>');
+            }
+        });
+    }
+    
+    // Render devices
+    function renderDevices() {
+        if (!devices || devices.length === 0) {
+            $('#devicesList').html('<tr><td colspan="3" class="text-center">No controllable devices found</td></tr>');
+            return;
+        }
+        
+        let html = '';
+        
+        for (const device of devices) {
+            let icon = '';
+            
+            switch (device.type) {
+                case 'lighting':
+                    icon = '<i class="fas fa-lightbulb text-warning"></i>';
+                    break;
+                case 'fan':
+                    icon = '<i class="fas fa-fan text-primary"></i>';
+                    break;
+                case 'pump':
+                    icon = '<i class="fas fa-tint text-info"></i>';
+                    break;
+                case 'motor':
+                    icon = '<i class="fas fa-cog text-secondary"></i>';
+                    break;
+                case 'sensor':
+                    icon = '<i class="fas fa-thermometer-half text-danger"></i>';
+                    break;
+                case 'controller':
+                    icon = '<i class="fas fa-microchip text-success"></i>';
+                    break;
+                default:
+                    icon = '<i class="fas fa-bolt text-secondary"></i>';
+            }
+            
+            html += `
+                <tr>
+                    <td>
+                        ${icon}
+                        <span class="ms-2">${device.name}</span>
+                    </td>
+                    <td>${device.type.charAt(0).toUpperCase() + device.type.slice(1)}</td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input device-checkbox" type="checkbox" id="device-${device.id}" data-id="${device.id}" ${device.type === 'charger' || device.type === 'appliance' ? 'checked' : ''}>
+                            <label class="form-check-label" for="device-${device.id}"></label>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        $('#devicesList').html(html);
+    }
+    
+    // Run optimization
+    function runOptimization() {
+        // Show loading
+        $('.optimization-result').removeClass('active');
+        $('#optimizationLoading').addClass('active');
+        
+        // Scroll to loading indicator
+        $('html, body').animate({
+            scrollTop: $('#optimizationLoading').offset().top - 100
+        }, 500);
+        
+        // Get form data
+        const optimizationMode = $('#optimizationMode').val();
+        const timeHorizon = $('#timeHorizon').val();
+        const algorithm = $('#algorithm').val();
+        
+        // Get battery constraints
+        const batteryConstraints = {
+            enabled: $('#batteryEnabled').is(':checked'),
+            minSoc: parseInt($('#minSoc').val()),
+            maxCycles: parseFloat($('#maxCycles').val())
+        };
+        
+        // Get grid constraints
+        const gridConstraints = {
+            enabled: $('#gridEnabled').is(':checked'),
+            maxPower: parseInt($('#maxPower').val())
+        };
+        
+        // Get selected devices
+        const selectedDevices = [];
+        $('.device-checkbox:checked').each(function() {
+            selectedDevices.push($(this).data('id'));
+        });
+        
+        // Prepare request data
+        const requestData = {
+            optimizationMode,
+            timeHorizon,
+            batteryConstraints,
+            gridConstraints,
+            selectedDevices,
+            algorithm
+        };
+        
+        // Determine API endpoint based on algorithm
+        const endpoint = algorithm === 'linear' ? '/api/optimization/run' : '/api/optimization/custom';
+        
+        // Run optimization
+        $.ajax({
+            url: endpoint,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(data) {
+                if (data.status === 'success') {
+                    currentOptimizationId = data.id;
+                    displayOptimizationResults(data);
+                } else {
+                    displayOptimizationError(data.message || 'Optimization failed');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error running optimization:', error);
+                displayOptimizationError('Error running optimization: ' + error);
+            }
+        });
+    }
+    
+    // Display optimization results
+    function displayOptimizationResults(data) {
+        // Show results
+        $('.optimization-result').removeClass('active');
+        $('#optimizationResults').addClass('active');
+        
+        // Scroll to results
+        $('html, body').animate({
+            scrollTop: $('#optimizationResults').offset().top - 100
+        }, 500);
+        
+        // Update metrics
+        $('#costSavings').text('$' + data.cost.toFixed(2));
+        $('#costSavingsPct').text('15% reduction'); // Mock value
+        
+        $('#selfConsumption').text(data.selfConsumption.toFixed(1) + '%');
+        $('#selfConsumptionChange').text('+5% improvement'); // Mock value
+        
+        $('#peakPower').text(data.peakGridPower.toFixed(1) + ' kW');
+        $('#peakPowerChange').text('-20% reduction'); // Mock value
+        
+        $('#batteryCycles').text(data.batteryCycles.toFixed(2));
+        $('#batteryCyclesChange').text(data.batteryCycles.toFixed(2) + ' cycles per day');
+        
+        // Render chart
+        renderOptimizationChart(data.scheduleData);
+        
+        // Render device schedules
+        renderDeviceSchedules(data.deviceScheduleData);
+    }
+    
+    // Display optimization error
+    function displayOptimizationError(message) {
+        // Show error
+        $('.optimization-result').removeClass('active');
+        $('#optimizationError').addClass('active');
+        
+        // Update error message
+        $('#errorMessage').text(message);
+        
+        // Scroll to error
+        $('html, body').animate({
+            scrollTop: $('#optimizationError').offset().top - 100
+        }, 500);
+    }
+    
+    // Render optimization chart
+    function renderOptimizationChart(data) {
+        const xValues = data.map(item => item.time);
+        
+        // Prepare data series
+        const traces = [];
+        
+        // Solar (area)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.solar),
+            name: 'Solar',
+            type: 'scatter',
+            mode: 'lines',
+            fill: 'tozeroy',
+            line: {
+                color: '#FFD700'
+            }
+        });
+        
+        // Battery (line)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.battery),
+            name: 'Battery',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#4CAF50'
+            }
+        });
+        
+        // Grid (line)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.grid),
+            name: 'Grid',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#9C27B0'
+            }
+        });
+        
+        // Load (line)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.load),
+            name: 'Original Load',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#F44336',
+                dash: 'dot'
+            }
+        });
+        
+        // Optimized Load (line)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.optimizedLoad),
+            name: 'Optimized Load',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#2196F3'
+            }
+        });
+        
+        // Chart layout
+        const layout = {
+            title: 'Optimized Energy Schedule',
+            xaxis: {
+                title: 'Time'
+            },
+            yaxis: {
+                title: 'Power (kW)'
+            },
+            legend: {
+                orientation: 'h',
+                y: 1.1
+            },
+            margin: {
+                l: 50,
+                r: 50,
+                t: 50,
+                b: 50
+            },
+            hovermode: 'closest'
+        };
+        
+        // Render chart
+        Plotly.newPlot('optimizationChart', traces, layout);
+    }
+    
+    // Render device schedules
+    function renderDeviceSchedules(deviceSchedules) {
+        if (!deviceSchedules || deviceSchedules.length === 0) {
+            $('#deviceSchedules').html('<div class="alert alert-info">No device schedules available</div>');
+            return;
+        }
+        
+        let html = '';
+        
+        for (const device of deviceSchedules) {
+            let scheduleHtml = '';
+            
+            if (device.schedule && device.schedule.length > 0) {
+                scheduleHtml = '<ul class="list-group list-group-flush">';
+                
+                for (const schedule of device.schedule) {
+                    scheduleHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>${schedule.start} - ${schedule.end}</span>
+                            <span class="badge bg-primary rounded-pill">${schedule.power.toFixed(1)} kW</span>
+                        </li>
+                    `;
+                }
+                
+                scheduleHtml += '</ul>';
+            } else {
+                scheduleHtml = '<p class="text-muted">No schedule</p>';
+            }
+            
+            html += `
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">${device.name}</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        ${scheduleHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        $('#deviceSchedules').html(html);
+    }
+    
+    // Apply schedule
+    function applySchedule() {
+        if (!currentOptimizationId) {
+            alert('No optimization results to apply');
+            return;
+        }
+        
+        // Show loading button
+        const $btn = $('#applyScheduleBtn');
+        const originalHtml = $btn.html();
+        $btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Applying...');
+        $btn.prop('disabled', true);
+        
+        // Apply schedule
+        $.ajax({
+            url: `/api/optimization/apply/${currentOptimizationId}`,
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    alert('Schedule applied successfully!');
+                } else {
+                    alert('Failed to apply schedule: ' + data.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error applying schedule:', error);
+                alert('Error applying schedule: ' + error);
+            },
+            complete: function() {
+                // Restore button
+                $btn.html(originalHtml);
+                $btn.prop('disabled', false);
+            }
+        });
+    }
+    
+    // Export results
+    function exportResults() {
+        if (!currentOptimizationId) {
+            alert('No optimization results to export');
+            return;
+        }
+        
+        // Get optimization results
+        $.ajax({
+            url: `/api/optimization/results/${currentOptimizationId}`,
+            method: 'GET',
+            success: function(data) {
+                // Convert to JSON string
+                const jsonStr = JSON.stringify(data, null, 2);
+                
+                // Create download link
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `optimization-${currentOptimizationId}.json`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                setTimeout(function() {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 0);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error exporting results:', error);
+                alert('Error exporting results: ' + error);
+            }
+        });
+    }
+</script>
+{% endblock %}
+
