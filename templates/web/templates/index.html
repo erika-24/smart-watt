@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Energy Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+            font-weight: bold;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .status-card {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .status-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .status-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .recommendation-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .recommendation-card.high-priority {
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .recommendation-card.medium-priority {
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .chart-container {
+            height: 300px;
+            width: 100%;
+        }
+        
+        .config-form label {
+            font-weight: 500;
+        }
+        
+        .config-form .form-text {
+            font-size: 0.8rem;
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--dark-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .table th {
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+        
+        .badge-success {
+            background-color: var(--secondary-color);
+        }
+        
+        .badge-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .badge-danger {
+            background-color: var(--danger-color);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-lightning-charge-fill"></i> Energy Management System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/optimization">Optimization</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/devices">Devices</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/configuration">Configuration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/history">History</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2>Energy Dashboard</h2>
+                <p class="text-muted">Monitor and optimize your home energy usage</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary" id="runOptimizationBtn">
+                    <i class="bi bi-lightning-charge"></i> Run Optimization
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card status-card">
+                    <div class="status-icon text-primary">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <div class="status-value" id="currentPower">2.4 kW</div>
+                    <div class="status-label">Current Power</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card">
+                    <div class="status-icon text-warning">
+                        <i class="bi bi-sun"></i>
+                    </div>
+                    <div class="status-value" id="solarProduction">1.8 kW</div>
+                    <div class="status-label">Solar Production</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card">
+                    <div class="status-icon text-success">
+                        <i class="bi bi-battery-charging"></i>
+                    </div>
+                    <div class="status-value" id="batteryStatus">85%</div>
+                    <div class="status-label">Battery Status</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card">
+                    <div class="status-icon text-secondary">
+                        <i class="bi bi-grid"></i>
+                    </div>
+                    <div class="status-value" id="gridUsage">0.6 kW</div>
+                    <div class="status-label">Grid Usage</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-8">
+                <!-- Energy Usage Chart -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>Energy Usage</div>
+                        <div>
+                            <select class="form-select form-select-sm" id="chartTimeRange">
+                                <option value="day">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="energyUsageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast & Optimization Chart -->
+                <div class="card mb-4">
+                    <div class="card-header">Forecast & Optimization</div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="forecastChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deferrable Loads -->
+                <div class="card mb-4">
+                    <div class="card-header">Deferrable Loads</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>Power</th>
+                                        <th>Runtime</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deferrableLoadsTable">
+                                    <tr>
+                                        <td>EV Charger</td>
+                                        <td>7.2 kW</td>
+                                        <td>3 hours</td>
+                                        <td><span class="badge bg-success">Optimized</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">Run Now</button>
+                                            <button class="btn btn-sm btn-outline-secondary">Schedule</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dishwasher</td>
+                                        <td>1.2 kW</td>
+                                        <td>1.5 hours</td>
+                                        <td><span class="badge bg-warning">Pending</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">Run Now</button>
+                                            <button class="btn btn-sm btn-outline-secondary">Schedule</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pool Pump</td>
+                                        <td>0.8 kW</td>
+                                        <td>6 hours</td>
+                                        <td><span class="badge bg-success">Optimized</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">Run Now</button>
+                                            <button class="btn btn-sm btn-outline-secondary">Schedule</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-4">
+                <!-- Recommendations -->
+                <div class="card mb-4">
+                    <div class="card-header">Recommendations</div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="recommendationsList">
+                            <div class="list-group-item recommendation-card high-priority">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">Run EV Charger between 1:00-4:00 AM</h5>
+                                    <small class="text-muted">Today</small>
+                                </div>
+                                <p class="mb-1">Running your EV Charger during this time window will save money by using electricity during lower price periods.</p>
+                                <small class="text-success">Potential savings: $3.24</small>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-success">Apply</button>
+                                    <button class="btn btn-sm btn-outline-secondary">Dismiss</button>
+                                </div>
+                            </div>
+                            <div class="list-group-item recommendation-card medium-priority">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">Run Dishwasher between 2:00-3:30 PM</h5>
+                                    <small class="text-muted">Today</small>
+                                </div>
+                                <p class="mb-1">Running your Dishwasher during this time window will use excess solar production.</p>
+                                <small class="text-success">Potential savings: $1.45</small>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-success">Apply</button>
+                                    <button class="btn btn-sm btn-outline-secondary">Dismiss</button>
+                                </div>
+                            </div>
+                            <div class="list-group-item recommendation-card">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">Charge battery between 2:00-5:00 AM</h5>
+                                    <small class="text-muted">Tomorrow</small>
+                                </div>
+                                <p class="mb-1">Charging your battery during this low-price period (avg. $0.08/kWh) will save money.</p>
+                                <small class="text-success">Potential savings: $2.55</small>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-success">Apply</button>
+                                    <button class="btn btn-sm btn-outline-secondary">Dismiss</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optimization Summary -->
+                <div class="card mb-4">
+                    <div class="card-header">Optimization Summary</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="text-muted mb-1">Cost Savings</div>
+                            <div class="h4">$3.42 / day</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="text-muted mb-1">Self-Consumption</div>
+                            <div class="h4">87%</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="text-muted mb-1">Peak Shaving</div>
+                            <div class="h4">1.8 kW</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="text-muted mb-1">Battery Cycles</div>
+                            <div class="h4">0.8 / day</div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-outline-primary">View Details</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="card">
+                    <div class="card-header">System Status</div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>Home Assistant</div>
+                            <div><span class="badge bg-success">Connected</span></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>ESPHome</div>
+                            <div><span class="badge bg-success">Connected</span></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>Solcast</div>
+                            <div><span class="badge bg-success">Connected</span></div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div>Last Optimization</div>
+                            <div>10 minutes ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Sample data for charts
+        const energyUsageData = {
+            labels: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+            datasets: [
+                {
+                    label: 'Consumption',
+                    data: [0.8, 0.6, 1.2, 2.0, 2.4, 2.0, 2.8, 1.8],
+                    borderColor: '#3498db',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Solar',
+                    data: [0, 0, 0.2, 1.8, 3.2, 2.4, 0.6, 0],
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Battery',
+                    data: [0.8, 0.6, 0.8, 0, -0.8, -0.4, 1.0, 1.8],
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Grid',
+                    data: [0, 0, 0.2, 0.2, 0, 0, 1.2, 0],
+                    borderColor: '#95a5a6',
+                    backgroundColor: 'rgba(149, 165, 166, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        };
+
+        const forecastData = {
+            labels: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+            datasets: [
+                {
+                    label: 'Predicted Load',
+                    data: [0.7, 0.5, 1.0, 2.0, 2.4, 2.0, 2.8, 1.8],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.4
+                },
+                {
+                    label: 'Optimized Load',
+                    data: [0.7, 0.5, 1.0, 1.8, 2.0, 1.6, 2.2, 1.5],
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'PV Forecast',
+                    data: [0, 0, 0.2, 1.8, 3.2, 2.4, 0.6, 0],
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        };
+
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Energy Usage Chart
+            const energyUsageCtx = document.getElementById('energyUsageChart').getContext('2d');
+            const energyUsageChart = new Chart(energyUsageCtx, {
+                type: 'line',
+                data: energyUsageData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Power (kW)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Forecast Chart
+            const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+            const forecastChart = new Chart(forecastCtx, {
+                type: 'line',
+                data: forecastData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Power (kW)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Event listeners
+            document.getElementById('chartTimeRange').addEventListener('change', function() {
+                // Update chart data based on selected time range
+                // This would fetch new data from the API in a real implementation
+                alert('Changing time range to: ' + this.value);
+            });
+
+            document.getElementById('runOptimizationBtn').addEventListener('click', function() {
+                // Run optimization
+                alert('Running optimization...');
+                // This would call the API to run optimization in a real implementation
+            });
+        });
+    </script>
+</body>
+</html>
+

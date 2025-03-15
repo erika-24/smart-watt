@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .card-metric {
+        transition: all 0.3s;
+    }
+    .card-metric:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .toggle-btn {
+        cursor: pointer;
+    }
+    .toggle-btn.active {
+        opacity: 1;
+    }
+    .toggle-btn:not(.active) {
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1 class="h3 mb-0">Energy Dashboard</h1>
+        <p class="text-muted">Monitor and optimize your home energy usage</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary active" id="dayBtn">Day</button>
+            <button type="button" class="btn btn-outline-secondary" id="weekBtn">Week</button>
+            <button type="button" class="btn btn-outline-secondary" id="monthBtn">Month</button>
+        </div>
+        <button type="button" class="btn btn-outline-primary ms-2" id="datePickerBtn">
+            <i class="fas fa-calendar me-1"></i>
+            <span id="selectedDate">Today</span>
+        </button>
+        <!-- Hidden date picker input -->
+        <input type="date" id="datePicker" class="d-none">
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-subtitle text-muted">Current Power</h6>
+                    <i class="fas fa-bolt text-primary"></i>
+                </div>
+                <h2 class="card-title mb-0" id="currentPower">0.0 kW</h2>
+                <p class="card-text text-muted small" id="currentPowerChange">+0% from average</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-subtitle text-muted">Solar Production</h6>
+                    <i class="fas fa-sun text-warning"></i>
+                </div>
+                <h2 class="card-title mb-0" id="solarPower">0.0 kW</h2>
+                <p class="card-text text-muted small" id="solarPowerPct">0% of current usage</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-subtitle text-muted">Battery Status</h6>
+                    <i class="fas fa-battery-three-quarters text-success"></i>
+                </div>
+                <h2 class="card-title mb-0" id="batterySoc">0%</h2>
+                <p class="card-text text-muted small" id="batteryEnergy">0.0 kWh available</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="card-subtitle text-muted">Grid Usage</h6>
+                    <i class="fas fa-plug text-secondary"></i>
+                </div>
+                <h2 class="card-title mb-0" id="gridPower">0.0 kW</h2>
+                <p class="card-text text-muted small" id="gridPowerPct">0% of current usage</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Energy Charts -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Energy Flow</h5>
+                <div class="btn-toolbar">
+                    <div class="btn-group me-2" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-btn active" data-series="forecastedLoad">
+                            <i class="fas fa-chart-line me-1"></i>
+                            Forecasted Load
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-btn active" data-series="solar">
+                            <i class="fas fa-sun me-1"></i>
+                            Solar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-btn active" data-series="battery">
+                            <i class="fas fa-battery-half me-1"></i>
+                            Battery
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-btn active" data-series="grid">
+                            <i class="fas fa-plug me-1"></i>
+                            Grid
+                        </button>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="refreshChartBtn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="energyFlowChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Energy Breakdown -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Energy Sources</h5>
+            </div>
+            <div class="card-body">
+                <div id="energySourcesChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Energy Consumption by Device Type</h5>
+            </div>
+            <div class="card-body">
+                <div id="energyConsumptionChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let energyFlowChart;
+    let energySourcesChart;
+    let energyConsumptionChart;
+    let timeRange = 'day';
+    let selectedDate = new Date().toISOString().split('T')[0];
+    let visibleSeries = {
+        forecastedLoad: true,
+        solar: true,
+        battery: true,
+        grid: true
+    };
+
+    // Initialize page
+    $(document).ready(function() {
+        // Initialize date picker
+        $('#datePicker').val(selectedDate);
+        $('#selectedDate').text(formatDate(selectedDate));
+        
+        // Date picker button click
+        $('#datePickerBtn').click(function() {
+            $('#datePicker').click();
+        });
+        
+        // Date picker change
+        $('#datePicker').change(function() {
+            selectedDate = $(this).val();
+            $('#selectedDate').text(formatDate(selectedDate));
+            loadData();
+        });
+        
+        // Time range buttons
+        $('#dayBtn, #weekBtn, #monthBtn').click(function() {
+            $('#dayBtn, #weekBtn, #monthBtn').removeClass('active');
+            $(this).addClass('active');
+            timeRange = $(this).attr('id').replace('Btn', '');
+            loadData();
+        });
+        
+        // Series toggle buttons
+        $('.toggle-btn').click(function() {
+            $(this).toggleClass('active');
+            const series = $(this).data('series');
+            visibleSeries[series] = $(this).hasClass('active');
+            updateChartVisibility();
+        });
+        
+        // Refresh button
+        $('#refreshChartBtn').click(function() {
+            loadData();
+        });
+        
+        // Load initial data
+        loadData();
+        
+        // Load current metrics
+        loadCurrentMetrics();
+        
+        // Set up auto-refresh
+        setInterval(loadCurrentMetrics, 60000); // Refresh current metrics every minute
+    });
+    
+    // Format date for display
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    }
+    
+    // Load current metrics
+    function loadCurrentMetrics() {
+        $.ajax({
+            url: '/api/energy/current',
+            method: 'GET',
+            success: function(data) {
+                if (data && data.length > 0) {
+                    // Get current hour data
+                    const currentHour = new Date().getHours();
+                    const currentData = data.find(item => item.time.startsWith(currentHour.toString().padStart(2, '0'))) || data[0];
+                    
+                    // Update metrics
+                    $('#currentPower').text(`${currentData.consumption.toFixed(1)} kW`);
+                    $('#solarPower').text(`${currentData.solar.toFixed(1)} kW`);
+                    
+                    // Calculate percentages
+                    const solarPct = currentData.consumption > 0 ? (currentData.solar / currentData.consumption) * 100 : 0;
+                    $('#solarPowerPct').text(`${solarPct.toFixed(0)}% of current usage`);
+                    
+                    // Get battery and grid data from the first API call
+                    $.ajax({
+                        url: '/api/energy/current',
+                        method: 'GET',
+                        success: function(firstData) {
+                            if (firstData && firstData.length > 0) {
+                                // Get battery data
+                                const batteryData = firstData[0];
+                                const batterySoc = 85; // Mock battery SOC
+                                const batteryCapacity = 10; // Mock battery capacity in kWh
+                                const availableEnergy = (batteryCapacity * batterySoc / 100).toFixed(1);
+                                
+                                $('#batterySoc').text(`${batterySoc}%`);
+                                $('#batteryEnergy').text(`${availableEnergy} kWh available`);
+                                
+                                // Get grid data
+                                const gridPower = currentData.grid;
+                                $('#gridPower').text(`${Math.abs(gridPower).toFixed(1)} kW`);
+                                
+                                const gridPct = currentData.consumption > 0 ? (Math.abs(gridPower) / currentData.consumption) * 100 : 0;
+                                const gridDirection = gridPower >= 0 ? "import" : "export";
+                                $('#gridPowerPct').text(`${gridPct.toFixed(0)}% ${gridDirection}`);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error fetching current data:', error);
+                        }
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching current data:', error);
+            }
+        });
+    }
+    
+    // Load chart data
+    function loadData() {
+        // Show loading indicators
+        $('#energyFlowChart, #energySourcesChart, #energyConsumptionChart').html('<div class="d-flex justify-content-center align-items-center h-100"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+        
+        // Load energy flow data
+        $.ajax({
+            url: `/api/energy/${timeRange === 'day' ? 'current' : 'history'}`,
+            method: 'GET',
+            data: {
+                timeRange: timeRange,
+                date: selectedDate
+            },
+            success: function(data) {
+                if (data && data.length > 0) {
+                    renderEnergyFlowChart(data);
+                } else {
+                    $('#energyFlowChart').html('<div class="alert alert-warning">No data available</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching energy flow data:', error);
+                $('#energyFlowChart').html('<div class="alert alert-danger">Error loading data</div>');
+            }
+        });
+        
+        // Load energy breakdown data
+        $.ajax({
+            url: '/api/energy/breakdown',
+            method: 'GET',
+            success: function(data) {
+                if (data) {
+                    renderEnergyBreakdownCharts(data);
+                } else {
+                    $('#energySourcesChart, #energyConsumptionChart').html('<div class="alert alert-warning">No data available</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching energy breakdown data:', error);
+                $('#energySourcesChart, #energyConsumptionChart').html('<div class="alert alert-danger">Error loading data</div>');
+            }
+        });
+    }
+    
+    // Render energy flow chart
+    function renderEnergyFlowChart(data) {
+        const xValues = data.map(item => item.time || item.date);
+        
+        // Prepare data series
+        const traces = [];
+        
+        // Solar (area)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.solar),
+            name: 'Solar',
+            type: 'scatter',
+            mode: 'lines',
+            fill: 'tozeroy',
+            line: {
+                color: '#FFD700'
+            },
+            visible: visibleSeries.solar ? true : 'legendonly'
+        });
+        
+        // Battery (area)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.battery),
+            name: 'Battery',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#4CAF50'
+            },
+            visible: visibleSeries.battery ? true : 'legendonly'
+        });
+        
+        // Grid (area)
+        traces.push({
+            x: xValues,
+            y: data.map(item => item.grid),
+            name: 'Grid',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#9C27B0'
+            },
+            visible: visibleSeries.grid ? true : 'legendonly'
+        });
+        
+        // Forecasted Load (line)
+        if (data[0].hasOwnProperty('forecastedLoad')) {
+            traces.push({
+                x: xValues,
+                y: data.map(item => item.forecastedLoad),
+                name: 'Forecasted Load',
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#2196F3'
+                },
+                visible: visibleSeries.forecastedLoad ? true : 'legendonly'
+            });
+        } else if (data[0].hasOwnProperty('consumption')) {
+            traces.push({
+                x: xValues,
+                y: data.map(item => item.consumption),
+                name: 'Consumption',
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: '#2196F3'
+                },
+                visible: visibleSeries.forecastedLoad ? true : 'legendonly'
+            });
+        }
+        
+        // Chart layout
+        const layout = {
+            title: `Energy Flow (${timeRange.charAt(0).toUpperCase() + timeRange.slice(1)})`,
+            xaxis: {
+                title: timeRange === 'day' ? 'Time' : 'Date'
+            },
+            yaxis: {
+                title: timeRange === 'day' ? 'Power (kW)' : 'Energy (kWh)'
+            },
+            legend: {
+                orientation: 'h',
+                y: 1.1
+            },
+            margin: {
+                l: 50,
+                r: 50,
+                t: 50,
+                b: 50
+            },
+            hovermode: 'closest'
+        };
+        
+        // Render chart
+        Plotly.newPlot('energyFlowChart', traces, layout);
+        
+        // Store chart reference
+        energyFlowChart = document.getElementById('energyFlowChart');
+    }
+    
+    // Render energy breakdown charts
+    function renderEnergyBreakdownCharts(data) {
+        // Sources chart
+        const sourcesData = [{
+            values: data.sources.map(item => item.value),
+            labels: data.sources.map(item => item.name),
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: ['#FFD700', '#4CAF50', '#9C27B0']
+            }
+        }];
+        
+        const sourcesLayout = {
+            title: 'Energy Sources',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                y: -0.1
+            },
+            margin: {
+                l: 20,
+                r: 20,
+                t: 50,
+                b: 20
+            }
+        };
+        
+        Plotly.newPlot('energySourcesChart', sourcesData, sourcesLayout);
+        
+        // Consumption chart
+        const consumptionData = [{
+            values: data.consumption.map(item => item.value),
+            labels: data.consumption.map(item => item.name),
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: ['#FF5722', '#03A9F4', '#CDDC39', '#E91E63', '#607D8B']
+            }
+        }];
+        
+        const consumptionLayout = {
+            title: 'Energy Consumption',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                y: -0.1
+            },
+            margin: {
+                l: 20,
+                r: 20,
+                t: 50,
+                b: 20
+            }
+        };
+        
+        Plotly.newPlot('energyConsumptionChart', consumptionData, consumptionLayout);
+        
+        // Store chart references
+        energySourcesChart = document.getElementById('energySourcesChart');
+        energyConsumptionChart = document.getElementById('energyConsumptionChart');
+    }
+    
+    // Update chart visibility based on toggle buttons
+    function updateChartVisibility() {
+        if (!energyFlowChart) return;
+        
+        const update = {
+            visible: []
+        };
+        
+        // Update visibility for each trace
+        for (let i = 0; i < energyFlowChart.data.length; i++) {
+            const traceName = energyFlowChart.data[i].name.toLowerCase().replace(' ', '');
+            
+            // Match trace name to series name
+            let seriesName = '';
+            if (traceName.includes('solar')) seriesName = 'solar';
+            else if (traceName.includes('battery')) seriesName = 'battery';
+            else if (traceName.includes('grid')) seriesName = 'grid';
+            else if (traceName.includes('forecasted') || traceName.includes('consumption')) seriesName = 'forecastedLoad';
+            
+            // Set visibility
+            update.visible[i] = visibleSeries[seriesName] ? true : 'legendonly';
+        }
+        
+        Plotly.update('energyFlowChart', update, {});
+    }
+</script>
+{% endblock %}
+
