@@ -43,7 +43,3 @@ SmartWatt is an intelligent energy management system designed specifically for l
 - Plotly for data visualization
 - Bootstrap for the frontend
 
-## License
-
-MIT License
-
